@@ -11,7 +11,7 @@ $TIMESTEP = 0
 for i in {1:100}
 do 
   $TIMESTEP = $TIMESTEP + 1
-    if $TIMESTEP > 0
+    if $TIMESTEP > 1
       "netlogo-output-" $TIMESTEP - 1 ".csv" | lpj-guess set grass "column2" # read in netlogo output from previous timestep
   run lpj-guess # command to advance one timestep
   write grass "guess-output-" $TIMESTEP ".csv" # save grass amount
