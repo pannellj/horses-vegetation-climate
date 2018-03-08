@@ -1,3 +1,8 @@
+; NOTES: 
+
+
+
+
 globals [
   c        ; conversion of water uptake by plants to plant growth (g mm^-1 m^-2)
   gmax     ; maximum specific water uptake (mm g^-1 m^-2 d^-1)
@@ -11,12 +16,16 @@ globals [
   Dw       ; diffusion coefficient for soil water (m^2 d^-1)
   R        ; rainfall (mm d^-1) between 0 and 3
   Do       ; diffusion coefficient for surface water (m^2 d^-1)
+  timestep 
 ]
 
 patches-own [
   plant-density ; g m^-2
   soil-water    ; mm
   surface-water ; mm
+  dSurface_dt 
+  dSoil_dt 
+  dPlants_dt 
   ]
 
 to setup
@@ -37,8 +46,9 @@ to setup-globals
   set rw 0.2
   set Dw 0.1
   set Do 100
-  set R rainfall
-  set d mortality
+  set R 1 ; rainfall
+  set d 0.1 ;mortality
+  set timestep 24 ; hourly timesteps
 end
 
 to setup-patches
@@ -55,23 +65,37 @@ to go
   tick
   if ticks = 365 [ stop ]
   do-calculations
+  update-calculations
 end
+
 
 to do-calculations
   ask patches[
-    set plant-density ( plant-density +
-      c * gmax * (soil-water / (soil-water + k1)) * plant-density - d * plant-density + Dp
-      )
-    set soil-water ( soil-water +
-      alpha * (surface-water * ((plant-density + k2 * W0)/ (plant-density + k2))) - gmax * (surface-water / (surface-water + k1)) * plant-density - rw * surface-water + Dw
-      )
-    set surface-water ( surface-water +
-      R - alpha * (surface-water * ((plant-density + k2 * W0)/ (plant-density + k2))) + Do
-      )
-    set pcolor scale-color lime plant-density 0 1000
-    if plant-density = 0 [set pcolor 24]
+  
+    set dSurface_dt  R - alpha * (surface-water * ((plant-density + k2 * W0)/ (plant-density + k2))); + Do)
+
+    set dSoil_dt     alpha * (surface-water * ((plant-density + k2 * W0)/ (plant-density + k2))) - gmax * (soil-water / (soil-water + k1)) * plant-density - rw * soil-water; + Dw)
+    
+    set dPlants_dt   c * gmax * (soil-water / (soil-water + k1)) * plant-density - d * plant-density; + Dp)
+      
   ]
 end
+
+to update-calculations
+  
+  ask patches [
+    set surface-water surface-water + dSurface_dt / timestep
+    set soil-water    soil-water + dSoil_dt / timestep
+    set plant-density plant-density +  dPlants_dt / timestep
+    
+    if surface-water < 0 [set surface-water 0]
+    if soil-water    < 0 [set soil-water 0]
+    if plant-density < 0 [set plant-density 0]
+    
+    set pcolor scale-color lime plant-density 0 1000
+    if plant-density = 0 [set pcolor red]]
+ end
+   
 
 
 
